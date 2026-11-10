@@ -1,0 +1,605 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>GRIT Interview Scheduler</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Concept: a departure-board look for a travel-themed programme. Navy ink on cool grey, signal orange used only for the boarding-pass stub and active states. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --surface2:#E8ECF4; --ink:#14213D; --muted:#56627A; --line:#D3DAE8;
+  --accent:#D9500C; --accent-ink:#FFFFFF; --btn:#14213D; --btn-ink:#FFFFFF;
+  --good:#17794F; --good-bg:#DCF2E7; --warn:#80530A; --warn-bg:#FAEBCB; --bad:#B3261E; --bad-bg:#FADBD7; --info:#1F5FBF; --info-bg:#DDE8FA;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B1220; --surface:#131D31; --surface2:#1B2740; --ink:#E7ECF7; --muted:#9BA8C2; --line:#27344F;
+    --accent:#FF8240; --accent-ink:#1A0E05; --btn:#E7ECF7; --btn-ink:#0B1220;
+    --good:#5FD3A0; --good-bg:#12372A; --warn:#F0BF5B; --warn-bg:#3B2D0C; --bad:#FF8A80; --bad-bg:#4A1B18; --info:#8FB6FF; --info-bg:#172B52;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B1220; --surface:#131D31; --surface2:#1B2740; --ink:#E7ECF7; --muted:#9BA8C2; --line:#27344F;
+  --accent:#FF8240; --accent-ink:#1A0E05; --btn:#E7ECF7; --btn-ink:#0B1220;
+  --good:#5FD3A0; --good-bg:#12372A; --warn:#F0BF5B; --warn-bg:#3B2D0C; --bad:#FF8A80; --bad-bg:#4A1B18; --info:#8FB6FF; --info-bg:#172B52;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+.wrap{max-width:1080px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);margin:0;line-height:1.15;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;margin-bottom:12px}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand b{font-family:var(--f-display);font-size:26px;letter-spacing:.04em}
+.brand i{width:10px;height:10px;background:var(--accent);transform:rotate(45deg);display:inline-block;align-self:center}
+.brand span{color:var(--muted);font-size:13px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-weight:500;font-size:14px}
+.tab[aria-selected="true"]{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;background:var(--surface2);border-radius:12px;padding:10px 14px;margin-bottom:18px;font-size:13px;color:var(--muted)}
+.bar label{display:flex;align-items:center;gap:6px}
+select,input[type=date],textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:100%}
+textarea{width:100%;min-height:64px;resize:vertical}
+.btn{background:var(--btn);color:var(--btn-ink);border:0;border-radius:10px;padding:9px 16px;font-weight:600;font-size:14px}
+.btn.sec{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.warnb{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+.btn.sm{padding:5px 10px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.link{background:none;border:0;padding:0;color:var(--info);text-decoration:underline;font-size:13px}
+.chip{display:inline-flex;align-items:center;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;background:var(--surface2);color:var(--muted);white-space:nowrap}
+.chip.good{background:var(--good-bg);color:var(--good)} .chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.bad{background:var(--bad-bg);color:var(--bad)} .chip.info{background:var(--info-bg);color:var(--info)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.muted{color:var(--muted)} .small{font-size:13px} .mono{font-family:var(--f-mono)}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.spread{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+/* student phone frame */
+.phones{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;align-items:flex-start}
+.phone{width:100%;max-width:420px;background:var(--bg);border:1px solid var(--line);border-radius:22px;overflow:hidden;box-shadow:0 1px 0 var(--line)}
+.phone .cap{background:var(--ink);color:var(--bg);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.phone .cap b{font-family:var(--f-display);font-size:17px}
+.phone .cap .mi{font-family:var(--f-mono);font-size:12px}
+.pnav{display:flex;background:var(--surface);border-bottom:1px solid var(--line);overflow-x:auto}
+.pnav button{flex:1;border:0;background:none;padding:10px 8px;font-size:13px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap}
+.pnav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.pbody{padding:16px;display:flex;flex-direction:column;gap:14px;min-height:420px}
+.banner{border-radius:12px;padding:12px 14px;font-size:14px;display:flex;gap:10px;justify-content:space-between;align-items:flex-start}
+.banner.good{background:var(--good-bg);color:var(--good)} .banner.warn{background:var(--warn-bg);color:var(--warn)} .banner.info{background:var(--info-bg);color:var(--info)}
+.banner p{margin:0;color:var(--ink)}
+.msg{margin:0;font-size:15px}
+.ladder{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ladder .dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--muted)}
+.ladder .dot.on{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.ladder .dot.done{background:var(--good);color:#fff;border-color:var(--good)}
+.pass{--stub:108px;display:grid;grid-template-columns:1fr var(--stub);background:var(--surface);border:1px solid var(--line);border-radius:14px;position:relative;overflow:hidden}
+.pass::before,.pass::after{content:"";position:absolute;right:calc(var(--stub) - 8px);width:16px;height:16px;border-radius:50%;background:var(--bg);border:1px solid var(--line)}
+.pass::before{top:-9px} .pass::after{bottom:-9px}
+.pass .main{padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.pass .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.pass .val{font-weight:600;font-size:14px}
+.pass .wide{grid-column:1/-1}
+.pass .stub{border-left:2px dashed var(--line);background:var(--accent);color:var(--accent-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px 6px;gap:2px}
+.pass .stub .t{font-family:var(--f-mono);font-size:18px;font-weight:600}
+.pass.done .stub{background:var(--surface2);color:var(--muted)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.dchip{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:6px 10px;text-align:center;min-width:64px}
+.dchip .d{font-size:11px;color:var(--muted);font-weight:600} .dchip .n{font-weight:700;font-size:15px} .dchip .c{font-size:11px;color:var(--muted)}
+.dchip[aria-pressed="true"]{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.dchip[aria-pressed="true"] .d,.dchip[aria-pressed="true"] .c{color:var(--btn-ink);opacity:.8}
+.dchip:disabled{opacity:.4;cursor:not-allowed}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.slot{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 10px;text-align:left}
+.slot b{display:block;font-family:var(--f-mono);font-size:14px} .slot span{font-size:12px;color:var(--muted)}
+.slot[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.scroll{overflow-x:auto}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.tile .n{font-family:var(--f-display);font-size:28px;font-weight:700} .tile .l{font-size:12px;color:var(--muted)}
+.grid{display:grid;gap:4px;grid-template-columns:64px repeat(6,minmax(78px,1fr));min-width:600px}
+.grid .h{font-size:12px;font-weight:600;text-align:center;padding:4px;color:var(--muted)}
+.grid .t{font-family:var(--f-mono);font-size:12px;color:var(--muted);align-self:center}
+.cell{border:1px solid var(--line);background:var(--surface);border-radius:8px;height:40px;font-size:12px;font-weight:600;color:var(--muted)}
+.cell.open{background:var(--good-bg);color:var(--good);border-color:var(--good)}
+.cell.booked{background:var(--info-bg);color:var(--info);border-color:var(--info)}
+.cell.past{opacity:.4;cursor:not-allowed}
+.iv{display:flex;flex-direction:column;gap:10px}
+.fld{display:flex;flex-direction:column;gap:6px;font-size:14px}
+.radio{display:flex;flex-wrap:wrap;gap:8px}
+.radio label{border:1px solid var(--line);border-radius:10px;padding:6px 12px;display:flex;gap:6px;align-items:center;background:var(--surface)}
+.err{color:var(--bad);font-size:13px;margin:0}
+.ba-head{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;margin-bottom:14px}
+.tag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:3px 10px;border-radius:6px;background:var(--surface2);color:var(--muted);align-self:flex-start}
+.tag.after{background:var(--accent);color:var(--accent-ink)}
+.hint{font-size:12px;color:var(--muted)}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.list li{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:14px}
+.notif{border-bottom:1px solid var(--line);padding-bottom:10px} .notif:last-child{border:0}
+.notif .ts{font-size:12px;color:var(--muted)}
+#toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--btn);color:var(--btn-ink);padding:10px 16px;border-radius:12px;font-size:14px;max-width:min(92vw,460px);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+#toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><i></i><b>GRIT</b><span>Level Clearance Interviews · prototype</span></div>
+    <div class="tabs" role="tablist" id="roles"></div>
+  </header>
+  <div class="bar" id="bar"></div>
+  <main id="app"></main>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+var H=3600000, MIN=60000;
+var DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function pad(n){return String(n).padStart(2,'0');}
+function T(s){return Date.parse(s+':00Z');}
+function dkey(ms){var d=new Date(ms);return d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate());}
+function fDay(ms){var d=new Date(ms);return DOW[d.getUTCDay()]+', '+d.getUTCDate()+' '+MON[d.getUTCMonth()];}
+function fTime(ms){var d=new Date(ms);var h=d.getUTCHours();var ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(d.getUTCMinutes())+' '+ap;}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+var CLOCKS=[['2026-11-17T11:30','Tue 17 Nov, 11:30 AM'],['2026-11-18T18:00','Wed 18 Nov, 6:00 PM'],['2026-11-20T18:00','Fri 20 Nov, 6:00 PM'],['2026-11-24T09:00','Tue 24 Nov, 9:00 AM']];
+var IVS=[{id:'ananya',name:'Ananya Rao',first:'Ananya'},{id:'vikram',name:'Vikram Shah',first:'Vikram'},{id:'neha',name:'Neha Iyer',first:'Neha'}];
+function ivOf(id){return IVS.filter(function(i){return i.id===id;})[0];}
+var GRID_HOURS=[10,11,12,13,14,15,16,17];
+var WEEKS=[[16,17,18,19,20,21],[23,24,25,26,27,28]];
+
+/* ---- exact student-facing messages ---- */
+var MSG={
+  booked:function(start,first){return "You're booked! Your AI Product Mastery Novice Badge interview is on "+fDay(start)+" at "+fTime(start)+" IST with "+first+". The joining link will appear here 15 minutes before the start. Need a different time? You can reschedule for free until "+fDay(start-24*H)+", "+fTime(start-24*H)+" IST.";},
+  passed:"Congratulations, you passed! Your Novice Badge in AI Product Mastery is now on your profile. Curious what's next? See the skills the Specialist Badge needs.",
+  retake:function(date,fb){return "Not this time, and that's okay. Your interviewer would like you to practise a little more and retake the AI Product Mastery Novice interview. You can book a new slot from "+fDay(date)+". Feedback from your interviewer: \""+fb+"\"";},
+  failed:"This attempt didn't clear the interview. Your interviewer's feedback is below, and the interview team will share next steps.",
+  awaiting:"Your interview is done. Your interviewer is recording the result, and you'll see it here.",
+  eligible:"You've cleared every skill for the Novice Badge. Book your interview to earn it.",
+  skills:function(n){return "Clear "+n+" more skill"+(n===1?'':'s')+" to unlock your interview.";},
+  hold:"Your interview is on hold while the team reviews your account. You'll see an update here.",
+  nullified:function(r){return "Your Novice Badge in AI Product Mastery was removed after a review. Reason: "+r+".";},
+  cancelledByIv:function(start){return "Your interview on "+fDay(start)+" at "+fTime(start)+" IST was cancelled by the interviewer. We're sorry. Pick a new time, you're first in line.";},
+  reminder:"Reminder: your interview starts in 24 hours. Your joining link will appear here 15 minutes before the start."
+};
+
+/* ---- data ---- */
+var KEY='grit-interview-proto-v2';
+var db, ui;
+function NOW(){return T(db.clock);}
+function addSlot(d,iv,day,hour){var start=T('2026-11-'+pad(day)+'T'+pad(hour)+':00');var id=iv+'|'+dkey(start)+'|'+hour;if(!d.slots[id])d.slots[id]={id:id,iv:iv,start:start,end:start+45*MIN,status:'OPEN'};return d.slots[id];}
+function seed(){
+  var d={seq:10,slots:{},bookings:{},students:{},clock:'2026-11-17T11:30'};
+  var pat={ananya:{days:[1,2,3,4,5],hours:[10,11,14,15,16]},vikram:{days:[1,2,3,4,5],hours:[11,12,15,16,17]},neha:{days:[1,3,5,6],hours:[10,14,16,17]}};
+  for(var day=16;day<=28;day++){
+    var dow=new Date(T('2026-11-'+pad(day)+'T00:00')).getUTCDay(); if(dow===0)continue;
+    IVS.forEach(function(iv){var p=pat[iv.id]; if(p.days.indexOf(dow)<0)return; p.hours.forEach(function(h){addSlot(d,iv.id,day,h);});});
+  }
+  function mk(sid,iv,day,hour,extra){var sl=addSlot(d,iv,day,hour);sl.status='BOOKED';var id='b'+(++d.seq);d.bookings[id]=Object.assign({id:id,slotId:sl.id,studentId:sid,status:'CONFIRMED'},extra||{});return id;}
+  function S(id,name,campus,st,x){d.students[id]=Object.assign({id:id,name:name,campus:campus,st:st,notifs:[],skillsLeft:[],miles:0},x||{});return d.students[id];}
+  S('aarav','Aarav Sharma','Hyderabad','ELIGIBLE',{miles:1280});
+  S('arjun','Arjun Reddy','Bengaluru','ELIGIBLE',{miles:940});
+  S('priya','Priya Nambiar','Pune','ELIGIBLE',{miles:1105});
+  var diya=S('diya','Diya Patel','Chennai','BOOKED',{miles:1410});
+  diya.bookingId=mk('diya','ananya',19,16);
+  diya.notifs.push({ts:T('2026-11-16T15:00'),text:MSG.booked(T('2026-11-19T16:00'),'Ananya')});
+  var kabir=S('kabir','Kabir Singh','Hyderabad','BOOKED',{miles:1530});
+  kabir.bookingId=mk('kabir','ananya',17,10);
+  kabir.notifs.push({ts:T('2026-11-15T12:00'),text:MSG.booked(T('2026-11-17T10:00'),'Ananya')});
+  var tanvi=S('tanvi','Tanvi Desai','Pune','BOOKED',{miles:1190});
+  tanvi.bookingId=mk('tanvi','vikram',17,11);
+  tanvi.notifs.push({ts:T('2026-11-15T18:00'),text:MSG.booked(T('2026-11-17T11:00'),'Vikram')});
+  var meera=S('meera','Meera Nair','Bengaluru','PASSED',{miles:1670});
+  meera.bookingId=mk('meera','ananya',16,10,{status:'COMPLETED',outcome:{result:'PASS',feedback:'',recordedAt:T('2026-11-16T10:55')}});
+  meera.notifs.push({ts:T('2026-11-16T10:55'),text:MSG.passed});
+  var fb1='Practise breaking a product problem into steps before you start building.';
+  var rohan=S('rohan','Rohan Gupta','Chennai','RETAKE',{miles:980,retakeAfter:T('2026-11-24T00:00'),feedback:fb1});
+  rohan.bookingId=mk('rohan','neha',17,10,{status:'COMPLETED',outcome:{result:'RETAKE',feedback:fb1,retakeAfter:T('2026-11-24T00:00'),recordedAt:T('2026-11-17T10:50')}});
+  rohan.notifs.push({ts:T('2026-11-17T10:50'),text:MSG.retake(T('2026-11-24T00:00'),fb1)});
+  var fb2='The data model skipped key edge cases. Revisit schema design basics and try again with the team.';
+  var sana=S('sana','Sana Qureshi','Hyderabad','FAILED',{miles:870,feedback:fb2});
+  sana.bookingId=mk('sana','vikram',16,12,{status:'COMPLETED',outcome:{result:'FAIL',feedback:fb2,recordedAt:T('2026-11-16T12:50')}});
+  sana.notifs.push({ts:T('2026-11-16T12:50'),text:MSG.failed});
+  var karan=S('karan','Karan Malhotra','Pune','NULLIFIED',{miles:1320,reason:'a malpractice flag was raised after your interview'});
+  karan.bookingId=mk('karan','ananya',16,11,{status:'COMPLETED',outcome:{result:'PASS',feedback:'',recordedAt:T('2026-11-16T11:50')}});
+  karan.notifs.push({ts:T('2026-11-16T11:50'),text:MSG.passed});
+  karan.notifs.unshift({ts:T('2026-11-17T09:00'),text:MSG.nullified(karan.reason)});
+  S('dev','Dev Khanna','Bengaluru','HOLD',{miles:760,holdPrev:'ELIGIBLE'}).notifs.push({ts:T('2026-11-17T09:30'),text:MSG.hold});
+  S('isha','Isha Verma','Chennai','SKILLS',{miles:690,skillsLeft:['UI Engineering L2']});
+  return d;
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db));}catch(e){}}
+function load(){try{var r=localStorage.getItem(KEY);if(r){var p=JSON.parse(r);if(p&&p.students&&p.slots)return p;}}catch(e){}return null;}
+function reset(){db=seed();save();}
+db=load()||seed();
+ui={role:'student',sid:'aarav',stab:'home',iv:'ananya',itab:'schedule',day:dkey(NOW()),week:0,bookDay:null,sel:null,conflict:null,banner:null,confirmCancel:false,
+    tfilter:'all',cmpScreen:'home',cmpResult:'PASSED',openForm:{},draft:{},cancelForm:null};
+
+/* ---- derived views ---- */
+function student(id){return db.students[id];}
+function viewOf(s){
+  var v={key:s.st,name:s.name,skillsLeft:s.skillsLeft,feedback:s.feedback,retakeAfter:s.retakeAfter,reason:s.reason,notice:s.notice};
+  var b=s.bookingId&&db.bookings[s.bookingId];
+  if(b){var sl=db.slots[b.slotId];v.start=sl.start;v.end=sl.end;v.ivFirst=ivOf(sl.iv).first;v.bookingId=b.id;}
+  if(s.st==='BOOKED'&&v.end<=NOW())v.key='AWAITING';
+  if(s.st==='RETAKE'&&NOW()>=s.retakeAfter)v.retakeOpen=true;
+  return v;
+}
+var LABEL={SKILLS:'Skills pending',ELIGIBLE:'Eligible, not booked',BOOKED:'Booked',AWAITING:'Awaiting outcome',PASSED:'Passed',FAILED:'Failed',RETAKE:'Retake later',HOLD:'On hold',NULLIFIED:'Badge nullified'};
+var TONE={SKILLS:'',ELIGIBLE:'info',BOOKED:'info',AWAITING:'warn',PASSED:'good',FAILED:'bad',RETAKE:'warn',HOLD:'warn',NULLIFIED:'bad'};
+function chip(k){return '<span class="chip '+TONE[k]+'">'+LABEL[k]+'</span>';}
+function openSlots(from){return Object.keys(db.slots).map(function(k){return db.slots[k];}).filter(function(s){return s.status==='OPEN'&&s.start>=from;}).sort(function(a,b){return a.start-b.start||a.iv.localeCompare(b.iv);});}
+function bookable(s){var base=NOW()+24*H;return openSlots(base);}
+
+/* ---- actions (each is one "transaction") ---- */
+function bookSlot(sid,slotId){
+  var s=student(sid), slot=db.slots[slotId];
+  if(!slot||slot.status!=='OPEN')return {ok:false,reason:'taken'};
+  if(slot.start<NOW()+24*H)return {ok:false,reason:'soon'};
+  var can=s.st==='ELIGIBLE'||s.st==='BOOKED'||(s.st==='RETAKE'&&NOW()>=s.retakeAfter);
+  if(!can)return {ok:false,reason:'eligible'};
+  if(s.st==='BOOKED'&&s.bookingId){var ob=db.bookings[s.bookingId];ob.status='CANCELLED';db.slots[ob.slotId].status='OPEN';}
+  slot.status='BOOKED';
+  var id='b'+(++db.seq);
+  db.bookings[id]={id:id,slotId:slotId,studentId:sid,status:'CONFIRMED'};
+  s.st='BOOKED';s.bookingId=id;s.notice=null;
+  s.notifs.unshift({ts:NOW(),text:MSG.booked(slot.start,ivOf(slot.iv).first)});
+  save();return {ok:true,slot:slot};
+}
+function cancelBooking(sid){
+  var s=student(sid);var b=db.bookings[s.bookingId];if(!b)return;
+  var late=db.slots[b.slotId].start-NOW()<24*H;
+  b.status='CANCELLED';db.slots[b.slotId].status='OPEN';s.st='ELIGIBLE';s.bookingId=null;save();return late;
+}
+function recordOutcome(bid,result,fb,retakeDate){
+  var b=db.bookings[bid],sl=db.slots[b.slotId],s=student(b.studentId);
+  if(sl.start>NOW())return 'You can record the outcome once the interview has started.';
+  if(!result)return 'Choose an outcome.';
+  if((result==='FAIL'||result==='RETAKE')&&!fb.trim())return 'Add feedback for the student.';
+  var ra=null;
+  if(result==='RETAKE'){ra=T((retakeDate||dkey(NOW()+7*H*24))+'T00:00');if(ra<=NOW())return 'Pick a retake date after today.';}
+  b.status='COMPLETED';b.outcome={result:result,feedback:fb.trim(),retakeAfter:ra,recordedAt:NOW()};
+  if(s&&['BOOKED','PASSED','FAILED','RETAKE'].indexOf(s.st)>=0){
+    s.feedback=fb.trim();s.retakeAfter=ra;
+    if(result==='PASS'){s.st='PASSED';s.notifs.unshift({ts:NOW(),text:MSG.passed});}
+    if(result==='FAIL'){s.st='FAILED';s.notifs.unshift({ts:NOW(),text:MSG.failed});}
+    if(result==='RETAKE'){s.st='RETAKE';s.notifs.unshift({ts:NOW(),text:MSG.retake(ra,s.feedback)});}
+  }
+  save();return null;
+}
+function cancelInterview(bid){
+  var b=db.bookings[bid],sl=db.slots[b.slotId],s=student(b.studentId);
+  b.status='CANCELLED';sl.status='REMOVED';
+  if(s){s.st='ELIGIBLE';s.bookingId=null;s.notice=MSG.cancelledByIv(sl.start);s.notifs.unshift({ts:NOW(),text:s.notice});}
+  save();
+}
+function flag(sid){
+  var s=student(sid);
+  if(s.st==='ELIGIBLE'){s.holdPrev='ELIGIBLE';s.st='HOLD';}
+  else if(s.st==='BOOKED'){var b=db.bookings[s.bookingId];if(b){b.status='CANCELLED';db.slots[b.slotId].status='OPEN';}s.bookingId=null;s.holdPrev='ELIGIBLE';s.st='HOLD';}
+  else if(s.st==='PASSED'){s.reason='a malpractice flag was raised after your interview';s.st='NULLIFIED';s.notifs.unshift({ts:NOW(),text:MSG.nullified(s.reason)});save();return;}
+  else return;
+  s.notifs.unshift({ts:NOW(),text:MSG.hold});save();
+}
+
+/* ---- toast ---- */
+var tt;function toast(t){var e=document.getElementById('toast');e.textContent=t;e.className='on';clearTimeout(tt);tt=setTimeout(function(){e.className='';},3200);}
+
+/* ---- student renderers ---- */
+function ladder(v){
+  var names=['Novice','Specialist','Expert','Master','Grand Master'];
+  return '<div class="ladder" aria-label="Badge ladder">'+names.map(function(n,i){
+    var cls=i===0?(v.key==='PASSED'?'done':'on'):'';return '<span class="dot '+cls+'" title="'+n+'">'+(i===0&&v.key==='PASSED'?'&#10003;':i+1)+'</span>';}).join('')+'<span class="small muted" style="margin-left:6px">'+(v.key==='PASSED'?'Novice earned':'Novice is your next badge')+'</span></div>';
+}
+function passCard(v,done){
+  return '<div class="pass'+(done?' done':'')+'"><div class="main"><div class="wide"><div class="lab">Level Clearance Interview</div><div class="val">AI Product Mastery · Novice Badge</div></div>'+
+    '<div><div class="lab">Date</div><div class="val">'+fDay(v.start)+'</div></div><div><div class="lab">Interviewer</div><div class="val">'+esc(v.ivFirst)+'</div></div>'+
+    '<div class="wide"><div class="lab">Joining link</div><div class="val small muted">'+(done?'Interview complete':'Appears here 15 minutes before the start')+'</div></div></div>'+
+    '<div class="stub"><div class="lab" style="color:inherit;opacity:.8">IST</div><div class="t">'+fTime(v.start)+'</div><div class="lab" style="color:inherit;opacity:.8">45 min</div></div></div>';
+}
+function statusCard(v,inter,s){
+  var a=function(x){return inter?' data-a="'+x+'"':' disabled';};
+  var h='';
+  if(v.key==='SKILLS'){
+    h='<div class="card stack"><div class="spread"><h3>Your interview</h3>'+chip('SKILLS')+'</div><p class="msg">'+MSG.skills(v.skillsLeft.length)+'</p><ul class="list">'+v.skillsLeft.map(function(x){return '<li><span>'+esc(x)+'</span><span class="chip warn">Pending</span></li>';}).join('')+'</ul><button class="btn"'+(inter?' disabled':' disabled')+'>Interview locked</button></div>';
+  }else if(v.key==='ELIGIBLE'){
+    h='<div class="card stack"><div class="spread"><h3>Your interview</h3>'+chip('ELIGIBLE')+'</div>'+(v.notice?'<div class="banner warn"><p>'+esc(v.notice)+'</p></div>':'')+'<p class="msg">'+MSG.eligible+'</p><button class="btn"'+a('goBook')+'>Book interview</button></div>';
+  }else if(v.key==='BOOKED'){
+    h='<div class="stack">'+passCard(v,false)+'<div class="card stack"><div class="spread"><h3>Your interview</h3>'+chip('BOOKED')+'</div>'+(inter&&ui.banner?'':'<p class="msg">'+MSG.booked(v.start,v.ivFirst)+'</p>')+
+      (inter&&ui.confirmCancel?'<p class="small">Cancel this booking? '+(v.start-NOW()<24*H?'It is less than 24 hours away, so the team will be told.':'It is free to cancel.')+'</p><div class="row"><button class="btn warnb sm" data-a="cancelYes">Yes, cancel</button><button class="btn sec sm" data-a="cancelNo">Keep it</button></div>':
+      '<div class="row"><button class="btn"'+a('goBook')+'>Reschedule</button><button class="btn sec"'+a('cancelAsk')+'>Cancel booking</button></div>')+'</div></div>';
+  }else if(v.key==='AWAITING'){
+    h='<div class="stack">'+passCard(v,true)+'<div class="card stack"><div class="spread"><h3>Your interview</h3>'+chip('AWAITING')+'</div><p class="msg">'+MSG.awaiting+'</p></div></div>';
+  }else if(v.key==='PASSED'){
+    h='<div class="card stack" style="border-color:var(--good)"><div class="spread"><h3>Your interview</h3>'+chip('PASSED')+'</div><p class="msg">'+MSG.passed+'</p><button class="btn"'+a('goBadges')+'>See Specialist skills</button></div>';
+  }else if(v.key==='RETAKE'){
+    h='<div class="card stack"><div class="spread"><h3>Your interview</h3>'+chip('RETAKE')+'</div><p class="msg">'+esc(MSG.retake(v.retakeAfter,v.feedback))+'</p><button class="btn"'+(v.retakeOpen?a('goBook'):' disabled')+'>'+(v.retakeOpen?'Book again':'Book again from '+fDay(v.retakeAfter))+'</button></div>';
+  }else if(v.key==='FAILED'){
+    h='<div class="card stack"><div class="spread"><h3>Your interview</h3>'+chip('FAILED')+'</div><p class="msg">'+MSG.failed+'</p><div class="banner info"><p>Feedback from your interviewer: &ldquo;'+esc(v.feedback||'')+'&rdquo;</p></div></div>';
+  }else if(v.key==='HOLD'){
+    h='<div class="card stack"><div class="spread"><h3>Your interview</h3>'+chip('HOLD')+'</div><p class="msg">'+MSG.hold+'</p><button class="btn" disabled>Booking paused</button></div>';
+  }else{
+    h='<div class="card stack" style="border-color:var(--bad)"><div class="spread"><h3>Your interview</h3>'+chip('NULLIFIED')+'</div><p class="msg">'+esc(MSG.nullified(v.reason))+'</p></div>';
+  }
+  return h;
+}
+function homeScreen(v,s,inter){
+  return '<div class="card stack"><div class="spread"><div><div class="small muted">Track</div><h3>AI Product Mastery</h3></div><div class="mono small">'+(s.miles||0).toLocaleString('en-IN')+' Miles</div></div>'+ladder(v)+'</div>'+statusCard(v,inter,s);
+}
+function badgesScreen(v){
+  var names=['Novice','Specialist','Expert','Master','Grand Master'];
+  var st={SKILLS:['Locked','Clear your skills first'],ELIGIBLE:['Ready','Interview not booked'],BOOKED:['Interview booked',''],AWAITING:['Awaiting result',''],PASSED:['Earned',''],FAILED:['Not earned','Next steps from the team'],RETAKE:['Retake later','Book again from '+(v.retakeAfter?fDay(v.retakeAfter):'')],HOLD:['On hold','Under review'],NULLIFIED:['Removed','Removed after a review']}[v.key];
+  var tone=TONE[v.key];
+  var reqs=['Computational Thinking L1','CS Fundamentals L1','Applied Gen AI Development L1','UI Engineering L2'];
+  return '<div class="stack"><div class="card stack"><h3>AI Product Mastery</h3><ul class="list">'+names.map(function(n,i){
+    return '<li><span><b>'+n+'</b></span>'+(i===0?'<span class="chip '+tone+'">'+st[0]+'</span>':'<span class="chip">Locked</span>')+'</li>';}).join('')+'</ul></div>'+
+    '<div class="card stack"><h3>Novice requirements</h3><ul class="list">'+reqs.map(function(r){var pend=v.skillsLeft&&v.skillsLeft.indexOf(r)>=0;return '<li><span>'+r+'</span><span class="chip '+(pend?'warn':'good')+'">'+(pend?'Pending':'Cleared')+'</span></li>';}).join('')+
+    '<li><span>Level Clearance Interview</span><span class="chip '+tone+'">'+st[0]+'</span></li></ul>'+(st[1]?'<p class="small muted" style="margin:0">'+esc(st[1])+'</p>':'')+'</div></div>';
+}
+function inboxScreen(list){
+  if(!list.length)return '<div class="card"><p class="muted">No notifications yet.</p></div>';
+  return '<div class="card stack">'+list.map(function(n){return '<div class="notif"><div class="ts">'+fDay(n.ts)+', '+fTime(n.ts)+'</div><p class="msg" style="margin:2px 0 0">'+esc(n.text)+'</p></div>';}).join('')+'</div>';
+}
+function bookScreen(s,v){
+  var locked={SKILLS:'Interviews unlock after you clear the skills for the badge.',AWAITING:'You have already interviewed. Your result will appear on your home screen.',PASSED:'You have earned this badge.',FAILED:'The interview team will share next steps.',HOLD:MSG.hold,NULLIFIED:'This badge was removed after a review.'};
+  var canBook=v.key==='ELIGIBLE'||v.key==='BOOKED'||(v.key==='RETAKE'&&v.retakeOpen);
+  if(!canBook){
+    var t=v.key==='RETAKE'?'You can book again from '+fDay(v.retakeAfter)+'.':locked[v.key];
+    return '<div class="card stack"><h3>Book your interview</h3><p class="msg">'+esc(t)+'</p></div>';
+  }
+  var all=bookable(s),byDay={};
+  all.forEach(function(sl){var k=dkey(sl.start);(byDay[k]=byDay[k]||[]).push(sl);});
+  var days=Object.keys(byDay).sort();
+  if(!ui.bookDay||!byDay[ui.bookDay])ui.bookDay=days[0];
+  var h='<div class="stack"><div class="card stack"><h3>'+(v.key==='BOOKED'?'Pick a new time':'Book your interview')+'</h3><p class="small muted" style="margin:0">AI Product Mastery · Novice Badge · 45 minutes · times in IST</p>'+
+    (v.key==='BOOKED'?'<p class="small" style="margin:0">Current booking: '+fDay(v.start)+', '+fTime(v.start)+' with '+esc(v.ivFirst)+'. It is released only when you confirm a new time.</p>':'')+'</div>';
+  if(!days.length){return h+'<div class="card"><p class="msg">No slots open right now. We will tell you here when new ones appear.</p></div></div>';}
+  h+='<div class="chips" role="group" aria-label="Choose a day">'+days.slice(0,9).map(function(k){var ms=T(k+'T00:00');var d=new Date(ms);
+    return '<button class="dchip" data-a="pickDay" data-k="'+k+'" aria-pressed="'+(k===ui.bookDay)+'"><div class="d">'+DOW[d.getUTCDay()]+'</div><div class="n">'+d.getUTCDate()+'</div><div class="c">'+byDay[k].length+' open</div></button>';}).join('')+'</div>';
+  if(ui.conflict){
+    var alt=bookable(s).filter(function(x){return x.id!==ui.conflict;}).slice(0,3);
+    h+='<div class="banner warn" role="alert"><div><b>That slot was just taken.</b><p>Another student confirmed it a moment before you. Here are the next open times.</p></div></div><div class="slots">'+
+      alt.map(function(x){return '<button class="slot" data-a="pickSlot" data-id="'+x.id+'" aria-pressed="false"><b>'+fDay(x.start).split(',')[0]+' '+fTime(x.start)+'</b><span>with '+esc(ivOf(x.iv).first)+'</span></button>';}).join('')+'</div>';
+  }
+  h+='<div class="slots">'+byDay[ui.bookDay].map(function(x){return '<button class="slot" data-a="pickSlot" data-id="'+x.id+'" aria-pressed="'+(ui.sel===x.id)+'"><b>'+fTime(x.start)+'</b><span>with '+esc(ivOf(x.iv).first)+'</span></button>';}).join('')+'</div>';
+  var sel=ui.sel&&db.slots[ui.sel];
+  if(sel&&sel.status==='OPEN'||ui.sel&&!ui.conflict&&sel){
+    h+='<div class="card stack"><div><div class="small muted">Your choice</div><b>'+fDay(sel.start)+' · '+fTime(sel.start)+'&ndash;'+fTime(sel.end)+' IST</b><div class="small muted">with '+esc(ivOf(sel.iv).first)+'</div></div>'+
+       '<button class="btn" data-a="confirmBook">'+(v.key==='BOOKED'?'Confirm new time':'Confirm booking')+'</button>'+
+       '<button class="link" data-a="simRace" style="align-self:flex-start">Demo: let another student take this slot first</button></div>';
+  }
+  return h+'</div>';
+}
+function studentView(){
+  var s=student(ui.sid),v=viewOf(s);
+  var body;
+  if(ui.stab==='home')body=homeScreen(v,s,true);
+  else if(ui.stab==='book')body=bookScreen(s,v);
+  else if(ui.stab==='badges')body=badgesScreen(v);
+  else body=inboxScreen(s.notifs);
+  var tabs=[['home','Home'],['book','Book'],['badges','Badges'],['inbox','Inbox'+(s.notifs.length?' ('+s.notifs.length+')':'')]];
+  return '<div class="phones"><div class="phone"><div class="cap"><b>Hi, '+esc(s.name.split(' ')[0])+'</b><span class="mi">NIAT · '+esc(s.campus)+'</span></div>'+
+    '<div class="pnav" role="tablist">'+tabs.map(function(t){return '<button role="tab" data-a="stab" data-k="'+t[0]+'" aria-selected="'+(ui.stab===t[0])+'">'+t[1]+'</button>';}).join('')+'</div>'+
+    '<div class="pbody">'+(ui.banner?'<div class="banner '+ui.banner.kind+'" role="status"><p>'+esc(ui.banner.text)+'</p><button class="link" data-a="closeBanner" aria-label="Dismiss">Dismiss</button></div>':'')+body+'</div></div></div>';
+}
+
+/* ---- interviewer ---- */
+function dayChips(sel,action){
+  var days=[];WEEKS.forEach(function(w){w.forEach(function(d){days.push(d);});});
+  return '<div class="chips" role="group" aria-label="Choose a day">'+days.map(function(d){var k='2026-11-'+pad(d);var dt=new Date(T(k+'T00:00'));
+    var n=Object.keys(db.bookings).filter(function(id){var b=db.bookings[id];return b.status!=='CANCELLED'&&dkey(db.slots[b.slotId].start)===k&&db.slots[b.slotId].iv===ui.iv;}).length;
+    return '<button class="dchip" data-a="'+action+'" data-k="'+k+'" aria-pressed="'+(k===sel)+'"><div class="d">'+DOW[dt.getUTCDay()]+'</div><div class="n">'+d+'</div><div class="c">'+n+' booked</div></button>';}).join('')+'</div>';
+}
+function scheduleView(){
+  var list=Object.keys(db.bookings).map(function(k){return db.bookings[k];}).filter(function(b){var sl=db.slots[b.slotId];return b.status!=='CANCELLED'&&sl.iv===ui.iv&&dkey(sl.start)===ui.day;}).sort(function(a,b){return db.slots[a.slotId].start-db.slots[b.slotId].start;});
+  var h='<div class="stack">'+dayChips(ui.day,'iDay');
+  h+='<div class="card stack"><div class="spread"><h3>'+fDay(T(ui.day+'T00:00'))+'</h3><span class="small muted">'+list.length+' interview'+(list.length===1?'':'s')+'</span></div>';
+  if(!list.length)h+='<p class="muted" style="margin:0">No interviews booked for this day.</p>';
+  h+='</div>';
+  list.forEach(function(b){
+    var sl=db.slots[b.slotId],st=student(b.studentId),name=st?st.name:'Another student',started=sl.start<=NOW();
+    var status;
+    if(b.status==='COMPLETED'){var r=b.outcome.result;status='<span class="chip '+(r==='PASS'?'good':r==='FAIL'?'bad':'warn')+'">'+(r==='PASS'?'Passed':r==='FAIL'?'Failed':'Retake later')+'</span>';}
+    else if(sl.end<=NOW())status='<span class="chip warn">Outcome needed</span>';
+    else if(started)status='<span class="chip info">In progress</span>';
+    else status='<span class="chip">Upcoming</span>';
+    h+='<div class="card stack"><div class="spread"><div><b class="mono">'+fTime(sl.start)+'&ndash;'+fTime(sl.end)+'</b> &nbsp; <b>'+esc(name)+'</b><div class="small muted">'+(st?esc(st.campus)+' · ':'')+'AI Product Mastery · Novice</div></div>'+status+'</div>';
+    var canEdit=b.status==='COMPLETED'&&NOW()<sl.end+24*H;
+    if(b.status==='COMPLETED'&&!ui.openForm[b.id]){
+      h+='<div class="small">'+(b.outcome.feedback?'Feedback: &ldquo;'+esc(b.outcome.feedback)+'&rdquo;':'No feedback needed.')+(b.outcome.retakeAfter?' Retake from '+fDay(b.outcome.retakeAfter)+'.':'')+'</div>'+(canEdit?'<div><button class="btn sec sm" data-a="editOutcome" data-id="'+b.id+'">Edit outcome</button> <span class="hint">Editable for 24 hours.</span></div>':'');
+    }else if(!started){
+      h+='<div class="small muted">Outcome can be recorded once the interview starts.</div>'+(ui.cancelForm===b.id?
+        '<div class="fld"><label for="cr-'+b.id+'">Reason for cancelling</label><select id="cr-'+b.id+'"><option>I am no longer available</option><option>Technical problem</option><option>Other</option></select><div class="row"><button class="btn warnb sm" data-a="cancelIvYes" data-id="'+b.id+'">Cancel interview</button><button class="btn sec sm" data-a="cancelIvNo">Keep it</button></div><span class="hint">The student returns to Eligible and is first in line to rebook.</span></div>':
+        '<div><button class="btn sec sm" data-a="cancelIvAsk" data-id="'+b.id+'">Cancel interview</button></div>');
+    }else{
+      var d=ui.draft[b.id]||(ui.draft[b.id]={res:b.outcome?b.outcome.result:'',fb:b.outcome?b.outcome.feedback:'',date:dkey(NOW()+7*24*H),err:''});
+      h+='<div class="fld"><span>Outcome</span><div class="radio" role="radiogroup">'+[['PASS','Pass'],['FAIL','Fail'],['RETAKE','Retake later']].map(function(o){return '<label><input type="radio" name="o-'+b.id+'" value="'+o[0]+'" data-a="res" data-id="'+b.id+'"'+(d.res===o[0]?' checked':'')+'> '+o[1]+'</label>';}).join('')+'</div></div>'+
+        '<div class="fld"><label for="fb-'+b.id+'">Feedback for the student'+(d.res==='PASS'||!d.res?' (optional)':' (required)')+'</label><textarea id="fb-'+b.id+'" data-a="fb" data-id="'+b.id+'">'+esc(d.fb)+'</textarea></div>'+
+        (d.res==='RETAKE'?'<div class="fld"><label for="dt-'+b.id+'">Student can book again from</label><input type="date" id="dt-'+b.id+'" data-a="dt" data-id="'+b.id+'" value="'+d.date+'"></div>':'')+
+        (d.err?'<p class="err" role="alert">'+esc(d.err)+'</p>':'')+'<div><button class="btn" data-a="saveOutcome" data-id="'+b.id+'">Save outcome</button></div>';
+    }
+    h+='</div>';
+  });
+  return h+'</div>';
+}
+function availView(){
+  var days=WEEKS[ui.week],now=NOW();
+  var h='<div class="stack"><div class="row"><button class="tab" data-a="wk" data-k="0" aria-selected="'+(ui.week===0)+'" role="tab">16&ndash;21 Nov</button><button class="tab" data-a="wk" data-k="1" aria-selected="'+(ui.week===1)+'" role="tab">23&ndash;28 Nov</button></div>';
+  h+='<div class="card stack"><p class="small muted" style="margin:0">Tap a time to open or close it. Green is open, blue is booked. A booked slot cannot be removed here: cancel the interview from the daily schedule instead.</p><div class="scroll"><div class="grid" role="grid">';
+  h+='<div></div>'+days.map(function(d){var dt=new Date(T('2026-11-'+pad(d)+'T00:00'));return '<div class="h">'+DOW[dt.getUTCDay()]+' '+d+'</div>';}).join('');
+  GRID_HOURS.forEach(function(hr){
+    h+='<div class="t">'+(hr>12?hr-12:hr)+':00 '+(hr>=12?'PM':'AM')+'</div>';
+    days.forEach(function(d){
+      var id=ui.iv+'|2026-11-'+pad(d)+'|'+hr,sl=db.slots[id],start=T('2026-11-'+pad(d)+'T'+pad(hr)+':00');
+      var past=start<now,cls='cell',label='';
+      if(sl&&sl.status==='BOOKED'){cls+=' booked';var bk=Object.keys(db.bookings).map(function(k){return db.bookings[k];}).filter(function(b){return b.slotId===id&&b.status!=='CANCELLED';})[0];var st=bk&&student(bk.studentId);label=st?st.name.split(' ')[0]:'Booked';}
+      else if(sl&&sl.status==='OPEN'){cls+=' open';label='Open';}
+      else label='';
+      if(past)cls+=' past';
+      h+='<button class="'+cls+'" data-a="cell" data-id="'+id+'" data-d="'+d+'" data-hr="'+hr+'"'+(past?' disabled':'')+' aria-label="'+DOW[new Date(start).getUTCDay()]+' '+d+' Nov '+hr+':00 '+(label||'closed')+'">'+label+'</button>';
+    });
+  });
+  return h+'</div></div></div></div>';
+}
+function interviewerView(){
+  return '<div class="stack"><div class="row"><button class="tab" role="tab" data-a="itab" data-k="schedule" aria-selected="'+(ui.itab==='schedule')+'">Daily schedule</button><button class="tab" role="tab" data-a="itab" data-k="avail" aria-selected="'+(ui.itab==='avail')+'">My availability</button></div>'+(ui.itab==='schedule'?scheduleView():availView())+'</div>';
+}
+
+/* ---- interview team ---- */
+function teamView(){
+  var all=Object.keys(db.students).map(function(k){return db.students[k];}).filter(function(s){return s.st!=='SKILLS';});
+  var vw=all.map(function(s){return {s:s,v:viewOf(s)};});
+  function is(x,keys){return keys.indexOf(x.v.key)>=0;}
+  var notBooked=vw.filter(function(x){return x.v.key==='ELIGIBLE'||(x.v.key==='RETAKE'&&x.v.retakeOpen);});
+  var booked=vw.filter(function(x){return x.v.key==='BOOKED';});
+  var awaiting=vw.filter(function(x){return x.v.key==='AWAITING';});
+  var done=vw.filter(function(x){return is(x,['PASSED','FAILED','RETAKE','NULLIFIED']);});
+  var week=openSlots(NOW()).filter(function(x){return x.start<NOW()+7*24*H;}).length;
+  var F={all:vw,notBooked:notBooked,booked:booked,awaiting:awaiting,done:done,hold:vw.filter(function(x){return x.v.key==='HOLD';})};
+  var rows=F[ui.tfilter]||vw;
+  var h='<div class="tiles"><div class="tile"><div class="n">'+notBooked.length+'</div><div class="l">Eligible, not booked</div></div><div class="tile"><div class="n">'+booked.length+'</div><div class="l">Booked, upcoming</div></div><div class="tile"><div class="n">'+awaiting.length+'</div><div class="l">Awaiting outcome</div></div><div class="tile"><div class="n">'+week+'</div><div class="l">Open slots, next 7 days</div></div></div>';
+  h+='<div class="card stack"><div class="row" role="group" aria-label="Filter students">'+[['all','All eligible'],['notBooked','Not booked'],['booked','Booked'],['awaiting','Awaiting outcome'],['done','Results'],['hold','On hold']].map(function(f){return '<button class="tab" data-a="tf" data-k="'+f[0]+'" aria-pressed="'+(ui.tfilter===f[0])+'" aria-selected="'+(ui.tfilter===f[0])+'">'+f[1]+' ('+F[f[0]].length+')</button>';}).join('')+'</div>';
+  h+='<p class="small muted" style="margin:0">Demand: '+notBooked.length+' student'+(notBooked.length===1?'':'s')+' still to book against '+week+' open slots in the next 7 days.</p>';
+  h+='<div class="scroll"><table><thead><tr><th>Student</th><th>Campus</th><th>Status</th><th>Interview</th><th>Actions</th></tr></thead><tbody>';
+  rows.forEach(function(x){
+    var s=x.s,v=x.v,when=v.start?fDay(v.start)+', '+fTime(v.start)+' · '+esc(v.ivFirst):'<span class="muted">Not booked</span>';
+    var act=[];
+    if(v.key==='ELIGIBLE'||(v.key==='RETAKE'&&v.retakeOpen))act.push('<button class="btn sec sm" data-a="remind" data-id="'+s.id+'">Send reminder</button>');
+    if(v.key==='FAILED')act.push('<button class="btn sec sm" data-a="reopen" data-id="'+s.id+'">Reopen attempt</button>');
+    if(['ELIGIBLE','BOOKED','AWAITING','PASSED'].indexOf(v.key)>=0)act.push('<button class="btn warnb sm" data-a="flag" data-id="'+s.id+'">Flag malpractice</button>');
+    if(v.key==='HOLD')act.push('<button class="btn sec sm" data-a="clearHold" data-id="'+s.id+'">Clear hold</button>');
+    h+='<tr><td><b>'+esc(s.name)+'</b></td><td>'+esc(s.campus)+'</td><td>'+chip(v.key)+'</td><td>'+when+'</td><td><div class="row">'+(act.join('')||'<span class="muted">None</span>')+'</div></td></tr>';
+  });
+  return h+'</tbody></table></div></div>';
+}
+
+/* ---- before / after ---- */
+function demoView(kind){
+  var base={name:'Kabir Singh',start:T('2026-11-19T16:00'),end:T('2026-11-19T16:45'),ivFirst:'Ananya',skillsLeft:[],bookingId:'x'};
+  var fb='Practise breaking a product problem into steps before you start building.';
+  if(kind==='AWAITING')return Object.assign({key:'AWAITING'},base);
+  if(kind==='PASSED')return Object.assign({key:'PASSED'},base);
+  if(kind==='RETAKE')return Object.assign({key:'RETAKE',retakeAfter:T('2026-11-24T00:00'),feedback:fb,retakeOpen:false},base);
+  return Object.assign({key:'FAILED',feedback:'The data model skipped key edge cases. Revisit schema design basics and try again with the team.'},base);
+}
+function demoNotifs(kind){
+  var b=demoView('AWAITING'),list=[{ts:b.end+5*MIN,text:MSG.awaiting},{ts:b.start-24*H,text:MSG.reminder},{ts:b.start-72*H,text:MSG.booked(b.start,b.ivFirst)}];
+  if(kind==='AWAITING')return list;
+  var v=demoView(kind);
+  var m=kind==='PASSED'?MSG.passed:kind==='RETAKE'?MSG.retake(v.retakeAfter,v.feedback):MSG.failed;
+  list.unshift({ts:b.end+40*MIN,text:m});return list;
+}
+function compareView(){
+  var fake={miles:1530,name:'Kabir Singh'};
+  function screen(kind){
+    var v=demoView(kind),body;
+    if(ui.cmpScreen==='home')body=homeScreen(v,fake,false);
+    else if(ui.cmpScreen==='badges')body=badgesScreen(v);
+    else body=inboxScreen(demoNotifs(kind));
+    return '<div class="phone"><div class="cap"><b>Hi, Kabir</b><span class="mi">NIAT · Hyderabad</span></div><div class="pbody">'+body+'</div></div>';
+  }
+  var R=[['PASSED','Passed'],['RETAKE','Retake later'],['FAILED','Failed']];
+  var h='<div class="ba-head"><div class="row" role="group" aria-label="Screen">'+[['home','Student home'],['badges','Badges'],['inbox','Inbox']].map(function(t){return '<button class="tab" data-a="cmpScreen" data-k="'+t[0]+'" aria-selected="'+(ui.cmpScreen===t[0])+'">'+t[1]+'</button>';}).join('')+'</div>'+
+    '<div class="row" role="group" aria-label="Result"><span class="small muted">Result:</span>'+R.map(function(t){return '<button class="tab" data-a="cmpRes" data-k="'+t[0]+'" aria-selected="'+(ui.cmpResult===t[0])+'">'+t[1]+'</button>';}).join('')+'</div></div>';
+  h+='<div class="phones"><div class="stack"><span class="tag">Before the result</span>'+screen('AWAITING')+'</div><div class="stack"><span class="tag after">After the result</span>'+screen(ui.cmpResult)+'</div></div>';
+  return h;
+}
+
+/* ---- shell ---- */
+function render(){
+  var roles=[['student','Student'],['interviewer','Interviewer'],['team','Interview team'],['compare','Before / after']];
+  document.getElementById('roles').innerHTML=roles.map(function(r){return '<button class="tab" role="tab" data-a="role" data-k="'+r[0]+'" aria-selected="'+(ui.role===r[0])+'">'+r[1]+'</button>';}).join('');
+  var bar='';
+  if(ui.role==='student'){
+    var order=['ELIGIBLE','BOOKED','AWAITING','PASSED','RETAKE','FAILED','HOLD','NULLIFIED','SKILLS'];
+    var opts=Object.keys(db.students).map(function(k){return db.students[k];}).sort(function(a,b){return order.indexOf(viewOf(a).key)-order.indexOf(viewOf(b).key);});
+    bar+='<label>Viewing as <select id="sid" data-a="sid">'+opts.map(function(s){return '<option value="'+s.id+'"'+(s.id===ui.sid?' selected':'')+'>'+esc(s.name)+' · '+LABEL[viewOf(s).key]+'</option>';}).join('')+'</select></label>';
+  }
+  if(ui.role==='interviewer')bar+='<label>Interviewer <select id="ivsel" data-a="ivsel">'+IVS.map(function(i){return '<option value="'+i.id+'"'+(i.id===ui.iv?' selected':'')+'>'+i.name+'</option>';}).join('')+'</select></label>';
+  bar+='<label>Demo clock <select id="clock" data-a="clock">'+CLOCKS.map(function(c){return '<option value="'+c[0]+'"'+(c[0]===db.clock?' selected':'')+'>'+c[1]+'</option>';}).join('')+'</select></label><button class="btn sec sm" data-a="reset">Reset demo data</button><span>All times IST. Sample data only.</span>';
+  document.getElementById('bar').innerHTML=bar;
+  var app=document.getElementById('app');
+  var focusId=document.activeElement&&document.activeElement.id,selS=null;
+  app.innerHTML=ui.role==='student'?studentView():ui.role==='interviewer'?interviewerView():ui.role==='team'?teamView():compareView();
+  if(focusId){var f=document.getElementById(focusId);if(f&&f.focus&&(f.tagName==='TEXTAREA'||f.tagName==='INPUT')){f.focus();try{var l=f.value.length;f.setSelectionRange(l,l);}catch(e){}}}
+}
+
+/* ---- events ---- */
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-a]');if(!t||t.disabled)return;
+  var a=t.dataset.a,k=t.dataset.k,id=t.dataset.id;
+  if(t.tagName==='INPUT'||t.tagName==='SELECT'||t.tagName==='TEXTAREA')return;
+  switch(a){
+    case 'role':ui.role=k;ui.banner=null;break;
+    case 'stab':ui.stab=k;ui.banner=null;ui.conflict=null;ui.confirmCancel=false;break;
+    case 'goBook':ui.stab='book';ui.banner=null;break;
+    case 'goBadges':ui.stab='badges';break;
+    case 'closeBanner':ui.banner=null;break;
+    case 'cancelAsk':ui.confirmCancel=true;break;
+    case 'cancelNo':ui.confirmCancel=false;break;
+    case 'cancelYes':var late=cancelBooking(ui.sid);ui.confirmCancel=false;toast(late?'Booking cancelled. It was less than 24 hours away, so the team has been told.':'Booking cancelled. The slot is open for others.');break;
+    case 'pickDay':ui.bookDay=k;ui.sel=null;ui.conflict=null;break;
+    case 'pickSlot':ui.sel=id;ui.conflict=null;break;
+    case 'simRace':if(ui.sel&&db.slots[ui.sel]){db.slots[ui.sel].status='BOOKED';var gid='g'+(++db.seq);db.bookings[gid]={id:gid,slotId:ui.sel,studentId:'ghost',status:'CONFIRMED'};save();toast('Another student has just booked this slot. Now press Confirm.');}break;
+    case 'confirmBook':
+      var r=bookSlot(ui.sid,ui.sel);
+      if(r.ok){var sl=r.slot;ui.banner={kind:'good',text:MSG.booked(sl.start,ivOf(sl.iv).first)};ui.stab='home';ui.sel=null;ui.conflict=null;}
+      else if(r.reason==='taken'){ui.conflict=ui.sel;ui.sel=null;}
+      else toast(r.reason==='soon'?'Interviews need at least 24 hours notice. Pick a later time.':'You cannot book an interview right now.');
+      break;
+    case 'iDay':ui.day=k;break;
+    case 'itab':ui.itab=k;break;
+    case 'wk':ui.week=+k;break;
+    case 'cell':
+      var sl2=db.slots[id];
+      if(sl2&&sl2.status==='BOOKED'){toast('Booked slots cannot be removed here. Open the daily schedule to cancel the interview with a reason.');}
+      else if(sl2&&sl2.status==='OPEN'){sl2.status='REMOVED';save();}
+      else{var d2=+t.dataset.d,h2=+t.dataset.hr;if(sl2){sl2.status='OPEN';}else{var ns=addSlot(db,ui.iv,d2,h2);ns.status='OPEN';}save();}
+      break;
+    case 'editOutcome':var bb=db.bookings[id];ui.openForm[id]=true;ui.draft[id]={res:bb.outcome.result,fb:bb.outcome.feedback||'',date:dkey(bb.outcome.retakeAfter||NOW()+7*24*H),err:''};break;
+    case 'saveOutcome':
+      var d=ui.draft[id];var er=recordOutcome(id,d.res,d.fb||'',d.date);
+      if(er){d.err=er;}else{delete ui.draft[id];delete ui.openForm[id];toast('Outcome saved. The student can see it on their dashboard.');}
+      break;
+    case 'cancelIvAsk':ui.cancelForm=id;break;
+    case 'cancelIvNo':ui.cancelForm=null;break;
+    case 'cancelIvYes':cancelInterview(id);ui.cancelForm=null;toast('Interview cancelled. The student has been told and is first in line to rebook.');break;
+    case 'tf':ui.tfilter=k;break;
+    case 'remind':toast('Reminder sent to '+student(id).name+' (prototype: nothing is actually sent).');break;
+    case 'reopen':var sx=student(id);sx.st='ELIGIBLE';sx.bookingId=null;save();toast(sx.name+' can book again.');break;
+    case 'flag':flag(id);toast('Flag recorded. The student sees the update on their dashboard.');break;
+    case 'clearHold':var sc=student(id);sc.st=sc.holdPrev||'ELIGIBLE';save();toast('Hold cleared.');break;
+    case 'cmpScreen':ui.cmpScreen=k;break;
+    case 'cmpRes':ui.cmpResult=k;break;
+    case 'reset':reset();ui.day=dkey(NOW());ui.draft={};ui.openForm={};ui.banner=null;ui.sel=null;ui.conflict=null;ui.bookDay=null;toast('Demo data reset.');break;
+    default:return;
+  }
+  render();
+});
+document.addEventListener('change',function(e){
+  var t=e.target,a=t.dataset&&t.dataset.a;if(!a)return;
+  if(a==='sid'){ui.sid=t.value;ui.stab='home';ui.banner=null;ui.sel=null;ui.conflict=null;ui.confirmCancel=false;ui.bookDay=null;}
+  else if(a==='ivsel'){ui.iv=t.value;}
+  else if(a==='clock'){db.clock=t.value;save();ui.day=dkey(NOW());ui.bookDay=null;ui.sel=null;}
+  else if(a==='res'){var d=ui.draft[t.dataset.id];if(d){d.res=t.value;d.err='';}}
+  else if(a==='dt'){var d2=ui.draft[t.dataset.id];if(d2)d2.date=t.value;}
+  else return;
+  render();
+});
+document.addEventListener('input',function(e){
+  var t=e.target;if(t.dataset&&t.dataset.a==='fb'){var d=ui.draft[t.dataset.id];if(d)d.fb=t.value;}
+});
+render();
+})();
+</script>
+
+</body></html>
